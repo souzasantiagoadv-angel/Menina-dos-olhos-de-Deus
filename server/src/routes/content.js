@@ -119,7 +119,7 @@ router.get('/quiz-questions/random', async (req, res) => {
   );
   const questions = rows
     .map((r) => r.question)
-    .map(({ q, options }) => ({ q, options }))
+    .map(({ q, options, answer }) => ({ q, options, answer }))
     .slice(0, Number(count) || 10);
   res.json(questions);
 });
