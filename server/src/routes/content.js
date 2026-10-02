@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { requireUser } from './auth.js';
+import { searchYouTube } from '../youtube.js';
 
 const router = Router();
 
 // Content visible to a user respects the parental filter: when the filter is
 // on, only content with age_min <= user's age is shown.
-function ageClause(user) {
+function ageClause(user, startIdx = 1) {
   if (!user || !user.parental_filter) return { sql: '', params: [] };
-  return { sql: ` AND age_min <= $1`, params: [user.age || 8] };
+  return { sql: ` AND age_min <= $${startIdx}`, params: [user.age || 8] };
 }
 
 router.get('/stories', async (req, res) => {
@@ -41,7 +42,7 @@ router.get('/stories/random', async (req, res) => {
 
 router.get('/stories/:id', async (req, res) => {
   const user = req.user;
-  const { sql, params } = ageClause(user);
+  const { sql, params } = ageClause(user, 2);
   const { rows } = await pool.query(
     `SELECT * FROM stories WHERE id = $1${sql}`, [req.params.id, ...params]
   );
@@ -58,7 +59,36 @@ router.get('/videos', async (req, res) => {
   if (testament && testament !== 'todos') { p.push(testament); where += ` AND testament = $${p.length}`; }
   if (category && category !== 'todas') { p.push(category); where += ` AND category = $${p.length}`; }
   const { rows } = await pool.query(`SELECT * FROM videos ${where} ORDER BY id`, p);
-  res.json(rows);
+
+  // Live results from YouTube (video servers), merged after the curated ones.
+  let live = [];
+  try {
+    const terms = ['história bíblica para crianças'];
+    if (testament === 'velho') terms.push('velho testamento');
+    if (testament === 'novo') terms.push('novo testamento');
+    if (category && category !== 'todas') terms.push(category);
+    const dbIds = new Set(rows.map((r) => r.youtube_id));
+    live = (await searchYouTube(terms.join(' '), 12))
+      .filter((v) => !dbIds.has(v.videoId))
+      .map((v) => ({ ...v, source: 'youtube' }));
+  } catch (e) {
+    console.error('YouTube live search failed:', e.message);
+  }
+
+  res.json([...rows, ...live]);
+});
+
+// Videos related to a story/topic, searched live on YouTube.
+router.get('/videos/related', async (req, res) => {
+  const { q, count = 4 } = req.query;
+  if (!q) return res.status(400).json({ error: 'Informe a busca' });
+  try {
+    const items = await searchYouTube(`${q} história bíblica para crianças`, Math.min(Number(count) || 4, 10));
+    res.json(items.map((v) => ({ ...v, source: 'youtube' })));
+  } catch (e) {
+    console.error('YouTube related search failed:', e.message);
+    res.json([]);
+  }
 });
 
 router.get('/quizzes', async (req, res) => {

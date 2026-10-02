@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import RelatedVideos from './RelatedVideos.jsx';
 
 export default function StoryView() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function StoryView() {
         </p>
         <p style={{ fontSize: 19 }}>{story.text}</p>
       </div>
+      <RelatedVideos query={story.title} title="🎬 Vídeos desta história" />
     </div>
   );
 }

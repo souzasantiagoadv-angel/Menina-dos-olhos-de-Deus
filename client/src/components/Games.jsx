@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import RelatedVideos from './RelatedVideos.jsx';
 
 export default function Games() {
   return (
@@ -17,6 +18,7 @@ export default function Games() {
           <div className="muted">10 perguntas — responde rápido!</div>
         </Link>
       </div>
+      <RelatedVideos query="histórias bíblicas para crianças" title="🎬 Vídeos bíblicos" />
     </div>
   );
 }

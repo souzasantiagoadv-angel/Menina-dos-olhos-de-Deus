@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../App.jsx';
 import { TestamentTabs } from './Stories.jsx';
+import RelatedVideos from './RelatedVideos.jsx';
 
 export default function Quizzes() {
   const { user } = useUser();
@@ -49,6 +50,7 @@ export default function Quizzes() {
         </div>
       )}
       {!user && <p className="muted">Entre na sua conta para salvar suas pontuações! 🍯</p>}
+      <RelatedVideos query="perguntas e respostas bíblicas para crianças" title="🎬 Vídeos para aprender mais" />
     </div>
   );
 }
