@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password_hash TEXT,
+  parent_id INT REFERENCES users(id) ON DELETE CASCADE,
   avatar TEXT DEFAULT '🐝',
   age INT DEFAULT 8,
   favorite_categories TEXT[] DEFAULT '{}',
@@ -107,9 +108,9 @@ INSERT INTO quizzes (title, testament, category, emoji, questions, age_min) VALU
 $$::jsonb, 6),
 ('Heróis do Antigo Testamento', 'velho', 'Histórias', '🦸', $$
 [{"q": "Quem foi vendido pelos irmãos e depois ajudou o Egito?", "options": ["José", "Moisés", "Sansão"], "answer": 0},
- {"q": "De quem o grande peixe engoliu?", "options": ["Pedro", "Jonas", "Paulo"], "answer": 1},
+ {"q": "Quem foi engolido por um grande peixe?", "options": ["Pedro", "Jonas", "Paulo"], "answer": 1},
  {"q": "Quem abriu o Mar Vermelho com a mão levantada?", "options": ["Josué", "Moisés", "Aarão"], "answer": 1},
- {"q": "Quantos pedrinhas Davi pegou do rio?", "options": ["1", "5", "50"], "answer": 1},
+ {"q": "Quantas pedrinhas Davi pegou do rio?", "options": ["1", "5", "50"], "answer": 1},
  {"q": "O que Deus colocou no céu como promessa a Noé?", "options": ["Uma estrela", "Um arco-íris", "Uma nuvem"], "answer": 1}
 ]$$::jsonb, 8),
 ('Vida de Jesus', 'novo', 'Novo Testamento', '⭐', $$
@@ -124,5 +125,5 @@ $$::jsonb, 6),
  {"q": "O que o filho pródigo fez quando voltou?", "options": ["Escondeu-se", "Pediu perdão", "Comprou uma fazenda"], "answer": 1},
  {"q": "O que o pai fez ao ver o filho voltar?", "options": ["Brigou", "Abraçou e fez festa", "Ignorou"], "answer": 1},
  {"q": "O que Jesus ensinou com o bom samaritano?", "options": ["Amar o próximo", "Fugir da estrada", "Ganhar dinheiro"], "answer": 0},
- {"q": "O que o filho pródigo gastou longe de casa?", "options": ["A herança", "O semente", "A casa"], "answer": 0}
+ {"q": "O que o filho pródigo gastou longe de casa?", "options": ["A herança", "A semente", "A casa"], "answer": 0}
 ]$$::jsonb, 8);

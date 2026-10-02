@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../App.jsx';
 
@@ -15,8 +15,42 @@ export default function Profile() {
   const [pin, setPin] = useState('');
   const [currentPin, setCurrentPin] = useState('');
   const [msg, setMsg] = useState(null);
+  const [children, setChildren] = useState([]);
+  const [childForm, setChildForm] = useState({ name: '', age: 8 });
+  const [childMsg, setChildMsg] = useState(null);
 
   if (!user) return <p className="error-text">Entre na sua conta para ver o perfil. <Link to="/entrar" className="back-link">Entrar</Link></p>;
+
+  const isAdult = !user.parent_id;
+
+  const loadChildren = () =>
+    fetch('/api/auth/children').then((r) => (r.ok ? r.json() : [])).then(setChildren).catch(() => {});
+  useEffect(() => { if (isAdult) loadChildren(); }, [user.id]);
+
+  const createChild = async (e) => {
+    e.preventDefault();
+    setChildMsg(null);
+    const res = await fetch('/api/auth/children', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(childForm),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setChildForm({ name: '', age: 8 });
+      setChildMsg({ ok: true, text: `Conta de ${data.name} criada! 🐝` });
+      loadChildren();
+    } else setChildMsg({ ok: false, text: data.error });
+  };
+
+  const loginAs = async (child) => {
+    const res = await fetch('/api/auth/login-as', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ child_id: child.id }),
+    });
+    if (res.ok) { setUser(await res.json()); navigate('/'); }
+  };
 
   const saveProfile = async () => {
     setMsg(null);
@@ -92,6 +126,30 @@ export default function Profile() {
 
         <button className="btn green" onClick={saveProfile}>Salvar perfil</button>
       </div>
+
+      {isAdult && (
+        <div className="form-card" style={{ margin: '0 0 20px', maxWidth: 'none' }}>
+          <h2>🧒 Contas das crianças</h2>
+          <p className="muted">Esta é a sua conta de responsável (18+). Crie um perfil para cada criança e entre como elas quando quiser.</p>
+          <div className="chip-row">
+            {children.map((c) => (
+              <button key={c.id} type="button" className="chip" onClick={() => loginAs(c)} title="Entrar como esta criança">
+                {c.avatar} {c.name} ({c.age}) →
+              </button>
+            ))}
+            {children.length === 0 && <span className="muted">Nenhuma criança cadastrada ainda.</span>}
+          </div>
+          <form onSubmit={createChild}>
+            <label>Nome da criança</label>
+            <input value={childForm.name} onChange={(e) => setChildForm({ ...childForm, name: e.target.value })} placeholder="Como ela se chama?" />
+            <label>Idade da criança</label>
+            <input type="number" min="1" max="17" value={childForm.age} onChange={(e) => setChildForm({ ...childForm, age: Number(e.target.value) })} />
+            <button className="btn blue" type="submit">Criar conta para criança</button>
+          </form>
+          {childMsg && <p className={childMsg.ok ? 'success-text' : 'error-text'}>{childMsg.text}</p>}
+        </div>
+      )}
+      {!isAdult && <p className="muted">🧒 Você está numa conta infantil criada pelo seu responsável.</p>}
 
       <div className="form-card" style={{ margin: '0 0 20px', maxWidth: 'none' }}>
         <h2>🔒 Modo Pais</h2>

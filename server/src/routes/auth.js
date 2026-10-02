@@ -26,14 +26,19 @@ export async function requireUser(req, res, next) {
 
 router.post('/signup', async (req, res) => {
   const { name, email, password, age } = req.body;
+  const ageNum = Number(age);
   if (!name || !email || !password || password.length < 4) {
     return res.status(400).json({ error: 'Preencha tudo (senha com 4+ letras)' });
+  }
+  // Only adults (18+) may create accounts; children get profiles created by them.
+  if (!ageNum || ageNum < 18) {
+    return res.status(400).json({ error: 'Para criar uma conta é preciso ter 18 anos ou mais. Depois do seu cadastro, crie contas para as crianças no seu perfil.' });
   }
   const hash = await bcrypt.hash(password, 10);
   try {
     const { rows } = await pool.query(
       `INSERT INTO users (name, email, password_hash, age) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [name, email.toLowerCase(), hash, Number(age) || 8]
+      [name, email.toLowerCase(), hash, ageNum]
     );
     const token = crypto.randomUUID();
     await pool.query(`INSERT INTO sessions (token, user_id) VALUES ($1, $2)`, [token, rows[0].id]);
@@ -63,6 +68,37 @@ router.post('/logout', (req, res) => {
   if (token) pool.query(`DELETE FROM sessions WHERE token = $1`, [token]);
   res.clearCookie(COOKIE);
   res.json({ ok: true });
+});
+
+// Contas infantis criadas e gerenciadas pelo responsável (18+)
+router.get('/children', requireUser, async (req, res) => {
+  if (req.user.parent_id) return res.status(403).json({ error: 'Apenas o responsável pode ver as contas das crianças' });
+  const { rows } = await pool.query(`SELECT * FROM users WHERE parent_id = $1 ORDER BY id`, [req.user.id]);
+  res.json(rows.map(userFromRows));
+});
+
+router.post('/children', requireUser, async (req, res) => {
+  if (req.user.parent_id) return res.status(403).json({ error: 'Apenas o responsável pode criar contas infantis' });
+  const { name, age } = req.body;
+  const ageNum = Number(age);
+  if (!name || !ageNum || ageNum < 1 || ageNum > 17) {
+    return res.status(400).json({ error: 'Informe o nome e a idade da criança (1 a 17 anos)' });
+  }
+  const { rows } = await pool.query(
+    `INSERT INTO users (name, email, password_hash, age, parent_id) VALUES ($1, NULL, NULL, $2, $3) RETURNING *`,
+    [name, ageNum, req.user.id]
+  );
+  res.json(userFromRows(rows[0]));
+});
+
+router.post('/login-as', requireUser, async (req, res) => {
+  const { child_id } = req.body;
+  const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1 AND parent_id = $2`, [child_id, req.user.id]);
+  if (!rows[0]) return res.status(403).json({ error: 'Esta criança não está na sua conta' });
+  const token = crypto.randomUUID();
+  await pool.query(`INSERT INTO sessions (token, user_id) VALUES ($1, $2)`, [token, rows[0].id]);
+  res.cookie(COOKIE, token, cookieOpts);
+  res.json(userFromRows(rows[0]));
 });
 
 router.get('/me', async (req, res) => {

@@ -6,7 +6,7 @@ export default function Auth() {
   const { setUser } = useUser();
   const navigate = useNavigate();
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', password: '', age: 8 });
+  const [form, setForm] = useState({ name: '', email: '', password: '', age: 30 });
   const [error, setError] = useState(null);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
@@ -42,8 +42,9 @@ export default function Auth() {
           <>
             <label>Seu nome</label>
             <input value={form.name} onChange={set('name')} placeholder="Como você se chama?" />
-            <label>Sua idade</label>
-            <input type="number" min="6" max="12" value={form.age} onChange={set('age')} />
+            <label>Sua idade (responsável, 18+)</label>
+            <input type="number" min="18" max="99" value={form.age} onChange={set('age')} />
+            <p className="muted">Contas são para responsáveis (18+). Depois do seu cadastro, crie contas para as crianças no seu perfil. 🧒</p>
           </>
         )}
         <label>E-mail</label>

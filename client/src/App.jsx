@@ -32,6 +32,11 @@ export default function App() {
 
   useEffect(() => { refresh(); }, []);
 
+  // O idioma acompanha a região de acesso do navegador (ex.: pt-BR).
+  useEffect(() => {
+    document.documentElement.lang = navigator.language || 'pt-BR';
+  }, []);
+
   if (!loaded) return <div className="page-loading">🐝 Carregando...</div>;
 
   return (
